@@ -356,6 +356,7 @@ build_*/
 
 # Xmake cache files
 .xmake/
+vcpkg_installed/
 
 # Clangd cache
 .clangd/

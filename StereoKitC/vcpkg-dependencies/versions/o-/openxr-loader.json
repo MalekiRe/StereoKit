@@ -1,0 +1,9 @@
+{
+    "versions": [
+        {
+            "version-string": "1.0.22",
+            "port-version": 0,
+            "path": "$/ports/openxr-loader/1.0.22"
+        }
+    ]
+}

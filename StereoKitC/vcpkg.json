@@ -1,0 +1,9 @@
+{
+  "name": "stereokitc",
+  "version-semver": "0.3.6-preview.4",
+  "homepage": "https://stereokit.net",
+  "dependencies": [
+    "openxr-loader",
+    "reactphysics3d"
+  ]
+}

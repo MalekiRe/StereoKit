@@ -511,6 +511,8 @@
       <Filter>shaders_builtin</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="vcpkg.json" />
+    <None Include="vcpkg-configuration.json" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="debugger_vis.natvis" />

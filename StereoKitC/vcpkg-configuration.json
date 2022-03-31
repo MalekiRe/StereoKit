@@ -1,0 +1,10 @@
+{
+  "registries": [
+    {
+      "kind": "filesystem",
+      "path": "vcpkg-dependencies",
+      "baseline": "2022-03-29",
+      "packages": [ "openxr-loader", "reactphysics3d" ]
+    }
+  ]
+}
