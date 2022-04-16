@@ -12,16 +12,27 @@
 		</AvailableItemName>
 	</ItemGroup>
 
-	<!-- Make sure the project rebuilds when .hlsl files change -->
-	<ItemGroup>
-		<UpToDateCheckInput Include="**/*.hlsl" />
-	</ItemGroup>
-
-	<!-- Switch compiler binary depending on the platform -->
 	<PropertyGroup>
+		<!-- Switch compiler binary depending on the platform -->
 		<SKShadercExe Condition="'$(OS)'=='Windows_NT'">skshaderc.exe</SKShadercExe>
 		<SKShadercExe Condition="'$(OS)'!='Windows_NT'">skshaderc</SKShadercExe>
+		<!-- Exclude /bin by default for shaders, but allow devs the ability to
+		     change that behavior. -->
+		<SKShaderExcludeFolder Condition="$(SKShaderExcludeFolder)==''">bin</SKShaderExcludeFolder>
 	</PropertyGroup>
+
+	<!-- Automatically include shaders -->
+	<ItemGroup>
+		<SKShader           Include="**/*.hlsl" Exclude="$(SKShaderExcludeFolder)/**/*.hlsl" />
+		<UpToDateCheckInput Include="**/*.hlsl" Exclude="$(SKShaderExcludeFolder)/**/*.hlsl" />
+
+		<!-- Filter out duplicate items, we want to rely on information listed
+		     on shaders that were not automatically discovered. Distinct does
+		     not work when path separators don't match, so we convert
+		     separators first! -->
+		<SKShadersNormalized Include="@(SKShader->Replace('\', '/'))"></SKShadersNormalized>
+		<SKShadersFiltered   Include="@(SKShadersNormalized->Distinct())"></SKShadersFiltered>
+	</ItemGroup>
 
 	<!-- This target builds all SKShader items. This is skipped for Library
 	     type projects. -->
@@ -30,28 +41,28 @@
 		<PropertyGroup>
 			<SKOpt Condition="'$(Configuration)'=='Release'">-o3</SKOpt>
 			<SKOpt Condition="'$(Configuration)'=='Debug'">-d</SKOpt>
-			<SKOutDir Condition="'%(SkShader.BuildTo)'==''">$(OutDir)%(SKShader.RelativeDir)/</SKOutDir>
-			<SKOutDir Condition="'%(SkShader.BuildTo)'!=''">$(OutDir)%(SkShader.BuildTo)/</SKOutDir>
+			<SKOutDir Condition="'%(SKShadersFiltered.BuildTo)'==''">$(OutDir)%(SKShadersFiltered.RelativeDir)/</SKOutDir>
+			<SKOutDir Condition="'%(SKShadersFiltered.BuildTo)'!=''">$(OutDir)%(SKShadersFiltered.BuildTo)/</SKOutDir>
 		</PropertyGroup>
 
 		<!-- Setup metadata for custom build tool -->
 		<ItemGroup>
-			<SKShader>
-				<Command>"$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)../tools/$(SKShadercExe)'))" $(SKOpt) -e -t xge -i "$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)../tools/'))include" -o "$(SKOutDir)" "%(SKShader.Identity)"</Command>
-				<Outputs>$(SKOutDir)%(SKShader.Filename)%(SKShader.Extension).sks</Outputs>
-				<RelativeName Condition="'%(SKShader.BuildRoot)'!=''">$([MSBuild]::MakeRelative("%(SKShader.BuildRoot)", "%(SKShader.Identity).sks"))</RelativeName>
-				<RelativeName Condition="'%(SKShader.BuildRoot)'==''">@(SKShader).sks</RelativeName>
-			</SKShader>
+			<SKShadersFiltered>
+				<Command>"$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)../tools/$(SKShadercExe)'))" $(SKOpt) -e -t xge -i "$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)../tools/'))include" -o "$(SKOutDir)" "%(SKShadersFiltered.Identity)"</Command>
+				<Outputs>$(SKOutDir)%(SKShadersFiltered.Filename)%(SKShadersFiltered.Extension).sks</Outputs>
+				<RelativeName Condition="'%(SKShadersFiltered.BuildRoot)'!=''">$([MSBuild]::MakeRelative("%(SKShadersFiltered.BuildRoot)", "%(SKShadersFiltered.Identity).sks"))</RelativeName>
+				<RelativeName Condition="'%(SKShadersFiltered.BuildRoot)'==''">@(SKShadersFiltered).sks</RelativeName>
+			</SKShadersFiltered>
 		</ItemGroup>
 
 		<!-- Run the compile commands -->
-		<Exec Command="%(SKShader.Command)" Outputs="%(SKShader.Outputs)">
+		<Exec Command="%(SKShadersFiltered.Command)" Outputs="%(SKShadersFiltered.Outputs)">
 			<Output ItemName="Generated" TaskParameter="Outputs" />
 		</Exec>
 
 		<!-- FileWrite them so they get cleaned up on rebuilds -->
 		<ItemGroup>
-			<FileWrites Include="%(SKShader.Outputs)"/>
+			<FileWrites Include="%(SKShadersFiltered.Outputs)"/>
 		</ItemGroup>
 	</Target>
 
@@ -63,7 +74,7 @@
 				<DeploymentContent>true</DeploymentContent>
 				<Link>%(SKShader.RelativeName)</Link>
 			</Content>
-			
+
 			<AndroidAsset Condition="'$(TargetFrameworkIdentifier)'=='MonoAndroid'" Include="%(SKShader.Outputs)">
 				<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 				<Link>%(SKShader.RelativeName)</Link>
